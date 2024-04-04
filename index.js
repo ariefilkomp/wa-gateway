@@ -45,4 +45,25 @@ whatsapp.onConnecting((session) => {
   console.log("connecting => ", session);
 });
 
+whatsapp.onMessageReceived(async (msg) => {
+  console.log(`New Message Received On Session: ${msg.sessionId} >>>`, msg);
+  if (msg.key.fromMe || msg.key.remoteJid.includes("status") || msg.key.participant !== undefined) return;
+  console.log('replying ...')
+  await whatsapp.readMessage({
+    sessionId: msg.sessionId,
+    key: msg.key,
+  });
+  await whatsapp.sendTyping({
+    sessionId: msg.sessionId,
+    to: msg.key.remoteJid,
+    duration: 3000,
+  });
+  await whatsapp.sendTextMessage({
+    sessionId: msg.sessionId,
+    to: msg.key.remoteJid,
+    text: "Hello!",
+    answering: msg, // for quoting message
+  });
+});
+
 whatsapp.loadSessionsFromStorage();
