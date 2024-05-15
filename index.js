@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const http = require("http");
+const axios = require('axios');
 const path = require("path");
 const MainRouter = require("./app/routers");
 const errorHandlerMiddleware = require("./app/middlewares/error_middleware");
@@ -12,6 +13,7 @@ const whatsapp = require("wa-multi-session");
 config();
 
 var app = express();
+app.use(express.static(__dirname + '/public'));
 app.use(morgan("dev"));
 app.use(cors());
 app.use(express.json());
@@ -49,21 +51,34 @@ whatsapp.onMessageReceived(async (msg) => {
   console.log(`New Message Received On Session: ${msg.sessionId} >>>`, msg);
   if (msg.key.fromMe || msg.key.remoteJid.includes("status") || msg.key.participant !== undefined) return;
   console.log('replying ...')
-  await whatsapp.readMessage({
-    sessionId: msg.sessionId,
-    key: msg.key,
+  const url = 'http://newpaklay.test/api/save-message';
+
+  axios.post(url, {
+    message_id: msg.key.id,
+    message: msg.message.conversation,
+    remote_jid: msg.key.remoteJid
+  })
+  .then(function (response) {
+    console.log(response);
+  })
+  .catch(function (error) {
+    console.log(error);
   });
-  await whatsapp.sendTyping({
-    sessionId: msg.sessionId,
-    to: msg.key.remoteJid,
-    duration: 3000,
-  });
-  await whatsapp.sendTextMessage({
-    sessionId: msg.sessionId,
-    to: msg.key.remoteJid,
-    text: "Hello!",
-    answering: msg, // for quoting message
-  });
+  // await whatsapp.readMessage({
+  //   sessionId: msg.sessionId,
+  //   key: msg.key,
+  // });
+  // await whatsapp.sendTyping({
+  //   sessionId: msg.sessionId,
+  //   to: msg.key.remoteJid,
+  //   duration: 3000,
+  // });
+  // await whatsapp.sendTextMessage({
+  //   sessionId: msg.sessionId,
+  //   to: msg.key.remoteJid,
+  //   text: "Hello!",
+  //   answering: msg, // for quoting message
+  // });
 });
 
 whatsapp.loadSessionsFromStorage();
