@@ -49,15 +49,19 @@ whatsapp.onConnecting((session) => {
 
 whatsapp.onMessageReceived(async (msg) => {
   console.log(`New Message Received On Session: ${msg.sessionId} >>>`, msg);
-  if (msg.key.fromMe || msg.key.remoteJid.includes("status") || msg.key.participant !== undefined) return;
+  if (msg.key.remoteJid.includes("status") || msg.key.participant !== undefined) return;
   console.log('replying ...')
   const url = 'http://newpaklay.test/api/save-message';
-
+  const token = 'kmzway87aa';
+  const config = {
+    headers: { Authorization: `Bearer ${token}` }
+};
   axios.post(url, {
     message_id: msg.key.id,
     message: msg.message.conversation,
-    remote_jid: msg.key.remoteJid
-  })
+    remote_jid: msg.key.remoteJid,
+    from_me: msg.key.fromMe
+  }, config)
   .then(function (response) {
     console.log(response);
   })
