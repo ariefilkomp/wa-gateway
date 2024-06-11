@@ -55,34 +55,41 @@ whatsapp.onMessageReceived(async (msg) => {
   const token = 'kmzway87aa';
   const config = {
     headers: { Authorization: `Bearer ${token}` }
-};
-  axios.post(url, {
-    message_id: msg.key.id,
-    message: msg.message.conversation,
-    remote_jid: msg.key.remoteJid,
-    from_me: msg.key.fromMe
-  }, config)
-  .then(function (response) {
-    console.log(response);
-  })
-  .catch(function (error) {
-    console.log(error);
-  });
-  // await whatsapp.readMessage({
-  //   sessionId: msg.sessionId,
-  //   key: msg.key,
-  // });
-  // await whatsapp.sendTyping({
-  //   sessionId: msg.sessionId,
-  //   to: msg.key.remoteJid,
-  //   duration: 3000,
-  // });
-  // await whatsapp.sendTextMessage({
-  //   sessionId: msg.sessionId,
-  //   to: msg.key.remoteJid,
-  //   text: "Hello!",
-  //   answering: msg, // for quoting message
-  // });
+  };
+
+  console.log('conversation: ', msg.message.conversation);
+  console.log('------------------------------------');
+  console.log('video: ', msg.message.videoMessage);
+  console.log('------------------------------------');
+  console.log('dokumen: ', msg.message.documentMessage);
+  console.log('------------------------------------');
+  if (msg.message.imageMessage !== null) {
+    msg.saveImage("storage/images/" + Date.now().toString() + ".jpg");
+    console.log('save image.. ');
+  } else if (msg.message.videoMessage !== null) {
+    msg.saveVideo("storage/videos/" + Date.now().toString() + ".mp4");
+    console.log('save video.. ');
+  } else if (msg.message.documentMessage !== null) {
+    console.log('save dokumen.. ');
+    msg.saveDocument("storage/documents/" + Date.now().toString());
+  }
+
+  if (msg.message.conversation !== '') {
+    axios.post(url, {
+      message_id: msg.key.id,
+      message: msg.message.conversation,
+      remote_jid: msg.key.remoteJid,
+      from_me: msg.key.fromMe
+    }, config)
+      .then(function (response) {
+        //console.log(response); ImageMessage
+        console.log('-- ok --');
+      })
+      .catch(function (error) {
+        console.log('-- error --');
+        // console.log(error);
+      });
+  }
 });
 
 whatsapp.loadSessionsFromStorage();
