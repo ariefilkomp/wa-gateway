@@ -9,6 +9,7 @@ import { env } from "./env";
 import { createSessionController } from "./controllers/session";
 import * as whastapp from "wa-multi-session";
 import { createMessageController } from "./controllers/message";
+import axios from 'axios';
 
 const app = new Hono();
 
@@ -45,6 +46,53 @@ serve(
 
 whastapp.onConnected((session) => {
   console.log(`session: '${session}' connected`);
+});
+
+whastapp.onMessageReceived(async (msg) => {
+  console.log(`New Message Received On Session: ${msg.sessionId} >>>`, msg);
+  if (msg?.key?.remoteJid?.includes("status") || msg.key.participant !== undefined) return;
+  console.log('replying ...')
+  const TOKEN = process.env.TOKEN || "";
+  const url = process.env.FW_URL || "";
+
+  const config = {
+    headers: { Authorization: `Bearer ${TOKEN}` }
+  };
+
+  console.log('conversation: ', msg.message?.conversation);
+  console.log('------------------------------------');
+  console.log('video: ', msg.message?.videoMessage);
+  console.log('------------------------------------');
+  console.log('dokumen: ', msg.message?.documentMessage);
+  console.log('------------------------------------');
+
+  if (msg.message?.imageMessage !== null) {
+    msg.saveImage("storage/images/" + Date.now().toString() + ".jpg");
+    console.log('save image.. ');
+  } else if (msg.message.videoMessage !== null) {
+    msg.saveVideo("storage/videos/" + Date.now().toString() + ".mp4");
+    console.log('save video.. ');
+  } else if (msg.message.documentMessage !== null) {
+    console.log('save dokumen.. ');
+    msg.saveDocument("storage/documents/" + Date.now().toString());
+  }
+
+  if (msg.message?.conversation !== '') {
+    axios.post(url, {
+      message_id: msg.key.id,
+      message: msg.message?.conversation,
+      remote_jid: msg.key.remoteJid,
+      from_me: msg.key.fromMe
+    }, config)
+      .then(function (response) {
+        console.log(response);
+        console.log('-- ok --');
+      })
+      .catch(function (error) {
+        console.log('-- error --');
+        console.log(error);
+      });
+  }
 });
 
 whastapp.loadSessionsFromStorage();
