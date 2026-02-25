@@ -3,7 +3,7 @@ import type { MessageReceived } from "wa-multi-session";
 const baseMediaPath = "./media/";
 
 export const handleWebhookImageMessage = async (message: MessageReceived) => {
-  if (message.message?.imageMessage) {
+  if (message.message?.imageMessage && message.message.imageMessage.mediaKey) {
     const baseMediaName = `${message.key.id}`;
 
     const fileName = `${baseMediaName}.jpg`;
@@ -14,7 +14,7 @@ export const handleWebhookImageMessage = async (message: MessageReceived) => {
 };
 
 export const handleWebhookVideoMessage = async (message: MessageReceived) => {
-  if (message.message?.videoMessage) {
+  if (message.message?.videoMessage && message.message.videoMessage.mediaKey) {
     const baseMediaName = `${message.key.id}`;
 
     const fileName = `${baseMediaName}.mp4`;
@@ -27,7 +27,10 @@ export const handleWebhookVideoMessage = async (message: MessageReceived) => {
 export const handleWebhookDocumentMessage = async (
   message: MessageReceived
 ) => {
-  if (message.message?.documentMessage) {
+  if (
+    message.message?.documentMessage &&
+    message.message.documentMessage.mediaKey
+  ) {
     const baseMediaName = `${message.key.id}`;
 
     const fileName = `${baseMediaName}`;
@@ -38,7 +41,7 @@ export const handleWebhookDocumentMessage = async (
 };
 
 export const handleWebhookAudioMessage = async (message: MessageReceived) => {
-  if (message.message?.audioMessage) {
+  if (message.message?.audioMessage && message.message.audioMessage.mediaKey) {
     const baseMediaName = `${message.key.id}`;
 
     const fileName = `${baseMediaName}.mp3`;

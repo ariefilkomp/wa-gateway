@@ -10,5 +10,13 @@ export const env = z
       .default("5001")
       .transform((e) => Number(e)),
     WEBHOOK_BASE_URL: z.string().optional(),
+    DB_HOST: z.string().default("localhost"),
+    DB_PORT: z
+      .string()
+      .default("3306")
+      .transform((e) => Number(e)),
+    DB_USER: z.string().default("root"),
+    DB_PASSWORD: z.string().default(""),
+    DB_DATABASE: z.string().default("wa_gateway"),
   })
   .parse(process.env);
