@@ -17,6 +17,6 @@ export const env = z
       .transform((e) => Number(e)),
     DB_USER: z.string().default("root"),
     DB_PASSWORD: z.string().default(""),
-    DB_DATABASE: z.string().default("wa_gateway"),
+    DB_DATABASE: z.string().default("sapamas2"),
   })
   .parse(process.env);

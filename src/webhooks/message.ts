@@ -31,8 +31,7 @@ export const createWebhookMessage =
     if (
       message.key.remoteJid?.includes("broadcast") ||
       message.key.remoteJid?.includes("@g.us") ||
-      message.key.remoteJid?.includes("@newsletter") ||
-      message.key.fromMe
+      message.key.remoteJid?.includes("@newsletter") 
     ) {
       console.log("Ignoring :",message.key.remoteJid);
       return;
@@ -45,8 +44,8 @@ export const createWebhookMessage =
       strToParse = message.key.remoteJidAlt ?? "";
     }
     
-    const fromNumber = strToParse.split("@")[0] ?? null;
-    const toNumber = "SYSTEM";
+    const fromNumber = isOutgoing ? "SYSTEM" : (strToParse.split("@")[0] ?? null);
+    const toNumber = isOutgoing ? (strToParse.split("@")[0] ?? null) : "SYSTEM";
 
     const image = await handleWebhookImageMessage(message);
     const video = await handleWebhookVideoMessage(message);
@@ -81,21 +80,40 @@ export const createWebhookMessage =
 
     try {
       // Make sure to add the 'to_number' column to your 'messages' table
-      const [result] = await pool.query(
-        "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-          randomUUID(),
-          body.from,
-          body.to,
-          body.message,
-          body.media.image,
-          body.media.video,
-          body.media.audio,
-          new Date(),
-          new Date(),
-        ]
-      );
-      console.log("Message saved to database", result);
+      if(isOutgoing) {
+        const [result] = await pool.query(
+          "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, processed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            randomUUID(),
+            body.from,
+            body.to,
+            body.message,
+            body.media.image,
+            body.media.video,
+            body.media.audio,
+            true, // Mark outgoing messages as processed
+            new Date(),
+            new Date(),
+          ]
+        );
+        console.log("Message saved to database", result);
+      } else {
+        const [result] = await pool.query(
+          "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            randomUUID(),
+            body.from,
+            body.to,
+            body.message,
+            body.media.image,
+            body.media.video,
+            body.media.audio,
+            new Date(),
+            new Date(),
+          ]
+        );
+        console.log("Message saved to database", result);
+      }
     } catch (error) {
       console.error("Failed to save message to database", error);
     }
