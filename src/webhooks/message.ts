@@ -1,5 +1,6 @@
 import type { MessageReceived } from "wa-multi-session";
 import { CreateWebhookProps, webhookClient } from ".";
+import { apiSentMessageIds } from "../controllers/message";
 import {
   handleWebhookAudioMessage,
   handleWebhookDocumentMessage,
@@ -14,6 +15,7 @@ type WebhookMessageBody = {
   from: string | null;
   to: string | null;
   message: string | null;
+  source: "api" | "whatsapp" | "incoming";
 
   media: {
     image: string | null;
@@ -31,19 +33,32 @@ export const createWebhookMessage =
     if (
       message.key.remoteJid?.includes("broadcast") ||
       message.key.remoteJid?.includes("@g.us") ||
-      message.key.remoteJid?.includes("@newsletter") 
+      message.key.remoteJid?.includes("@newsletter")
     ) {
-      console.log("Ignoring :",message.key.remoteJid);
+      console.log("Ignoring :", message.key.remoteJid);
       return;
     }
 
     const isOutgoing = message.key.fromMe;
 
+    // Determine message source
+    const messageId = message.key.id ?? "";
+    let source: "api" | "whatsapp" | "incoming" = "incoming";
+    if (isOutgoing) {
+      if (apiSentMessageIds.has(messageId)) {
+        clearTimeout(apiSentMessageIds.get(messageId));
+        apiSentMessageIds.delete(messageId);
+        source = "api";
+      } else {
+        source = "whatsapp";
+      }
+    }
+
     let strToParse = message.key.remoteJid ?? "";
-    if(message.key.remoteJid?.includes("@lid")) {
+    if (message.key.remoteJid?.includes("@lid")) {
       strToParse = message.key.remoteJidAlt ?? "";
     }
-    
+
     const fromNumber = isOutgoing ? "SYSTEM" : (strToParse.split("@")[0] ?? null);
     const toNumber = isOutgoing ? (strToParse.split("@")[0] ?? null) : "SYSTEM";
 
@@ -66,6 +81,7 @@ export const createWebhookMessage =
         message.message?.locationMessage?.comment ||
         message.message?.liveLocationMessage?.caption ||
         null,
+      source,
 
       /**
        * media message
@@ -80,23 +96,50 @@ export const createWebhookMessage =
 
     try {
       // Make sure to add the 'to_number' column to your 'messages' table
-      if(isOutgoing) {
-        const [result] = await pool.query(
-          "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, processed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          [
-            randomUUID(),
-            body.from,
-            body.to,
-            body.message,
-            body.media.image,
-            body.media.video,
-            body.media.audio,
-            true, // Mark outgoing messages as processed
-            new Date(),
-            new Date(),
-          ]
+      if (isOutgoing && source === "whatsapp") {
+        // Check contacts table for current_ticket_context_id
+        const [contacts] = await pool.query<any[]>(
+          "SELECT current_ticket_context_id FROM contacts WHERE phone_number = ? LIMIT 1",
+          [body.to]
         );
-        console.log("Message saved to database", result);
+        const ticketId = contacts?.[0]?.current_ticket_context_id ?? null;
+
+        if (ticketId) {
+          const [result] = await pool.query(
+            "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, ticket_id, processed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+              randomUUID(),
+              body.from,
+              body.to,
+              body.message,
+              body.media.image,
+              body.media.video,
+              body.media.audio,
+              ticketId,
+              true,
+              new Date(),
+              new Date(),
+            ]
+          );
+          console.log("Message saved to database with ticket_id", result);
+        } else {
+          const [result] = await pool.query(
+            "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, processed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+              randomUUID(),
+              body.from,
+              body.to,
+              body.message,
+              body.media.image,
+              body.media.video,
+              body.media.audio,
+              true,
+              new Date(),
+              new Date(),
+            ]
+          );
+          console.log("Message saved to database", result);
+        }
       } else {
         const [result] = await pool.query(
           "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",

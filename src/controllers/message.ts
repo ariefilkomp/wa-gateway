@@ -5,6 +5,22 @@ import { z } from "zod";
 import { HTTPException } from "hono/http-exception";
 import { whatsapp } from "../whatsapp";
 
+/**
+ * In-memory Map to track message IDs sent via API endpoints.
+ * Used to distinguish API-sent messages from WhatsApp-sent messages in webhooks.
+ * Entries auto-expire after 5 minutes to prevent memory leaks.
+ */
+export const apiSentMessageIds = new Map<string, NodeJS.Timeout>();
+
+const API_MESSAGE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function trackApiMessage(messageId: string | undefined | null) {
+  const id = messageId ?? "";
+  if (!id) return;
+  const timeout = setTimeout(() => apiSentMessageIds.delete(id), API_MESSAGE_TTL);
+  apiSentMessageIds.set(id, timeout);
+}
+
 export const createMessageController = () => {
   const sendMessageSchema = z.object({
     session: z.string(),
@@ -46,6 +62,7 @@ export const createMessageController = () => {
           text: payload.text,
           isGroup: payload.is_group,
         });
+        trackApiMessage(response?.key?.id);
 
         return c.json({
           data: response,
@@ -77,6 +94,7 @@ export const createMessageController = () => {
           to: payload.to,
           text: payload.text,
         });
+        trackApiMessage(response?.key?.id);
 
         return c.json({
           data: response,
@@ -122,6 +140,7 @@ export const createMessageController = () => {
           media: payload.image_url,
           isGroup: payload.is_group,
         });
+        trackApiMessage(response?.key?.id);
 
         return c.json({
           data: response,
@@ -169,6 +188,7 @@ export const createMessageController = () => {
           filename: payload.document_name,
           isGroup: payload.is_group,
         });
+        trackApiMessage(response?.key?.id);
 
         return c.json({
           data: response,
@@ -216,6 +236,7 @@ export const createMessageController = () => {
           media: payload.video_url,
           isGroup: payload.is_group,
         });
+        trackApiMessage(response?.key?.id);
 
         return c.json({
           data: response,
@@ -253,6 +274,7 @@ export const createMessageController = () => {
           media: payload.image_url,
           isGroup: payload.is_group,
         });
+        trackApiMessage(response?.key?.id);
 
         return c.json({
           data: response,
