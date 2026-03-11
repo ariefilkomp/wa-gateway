@@ -96,49 +96,51 @@ export const createWebhookMessage =
 
     try {
       // Make sure to add the 'to_number' column to your 'messages' table
-      if (isOutgoing && source === "whatsapp") {
-        // Check contacts table for current_ticket_context_id
-        const [contacts] = await pool.query<any[]>(
-          "SELECT current_ticket_context_id FROM contacts WHERE phone_number = ? LIMIT 1",
-          [body.to]
-        );
-        const ticketId = contacts?.[0]?.current_ticket_context_id ?? null;
+      if (isOutgoing) {
+        if (source === "whatsapp") {
+          // Check contacts table for current_ticket_context_id
+          const [contacts] = await pool.query<any[]>(
+            "SELECT current_ticket_context_id FROM contacts WHERE phone_number = ? LIMIT 1",
+            [body.to]
+          );
+          const ticketId = contacts?.[0]?.current_ticket_context_id ?? null;
 
-        if (ticketId) {
-          const [result] = await pool.query(
-            "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, ticket_id, processed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [
-              randomUUID(),
-              body.from,
-              body.to,
-              body.message,
-              body.media.image,
-              body.media.video,
-              body.media.audio,
-              ticketId,
-              true,
-              new Date(),
-              new Date(),
-            ]
-          );
-          console.log("Message saved to database with ticket_id", result);
-        } else {
-          const [result] = await pool.query(
-            "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, processed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [
-              randomUUID(),
-              body.from,
-              body.to,
-              body.message,
-              body.media.image,
-              body.media.video,
-              body.media.audio,
-              true,
-              new Date(),
-              new Date(),
-            ]
-          );
-          console.log("Message saved to database", result);
+          if (ticketId) {
+            const [result] = await pool.query(
+              "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, ticket_id, processed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              [
+                randomUUID(),
+                body.from,
+                body.to,
+                body.message,
+                body.media.image,
+                body.media.video,
+                body.media.audio,
+                ticketId,
+                true,
+                new Date(),
+                new Date(),
+              ]
+            );
+            console.log("Message saved to database with ticket_id", result);
+          } else {
+            const [result] = await pool.query(
+              "INSERT INTO messages (id, from_number, to_number, message, image, video, audio, processed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              [
+                randomUUID(),
+                body.from,
+                body.to,
+                body.message,
+                body.media.image,
+                body.media.video,
+                body.media.audio,
+                true,
+                new Date(),
+                new Date(),
+              ]
+            );
+            console.log("Message saved to database", result);
+          }
         }
       } else {
         const [result] = await pool.query(
