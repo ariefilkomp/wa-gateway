@@ -10,4 +10,5 @@ services:
     ports:
       - "5001:5001"
     environment:
-      - KEY= # make your own api key (optional)
+      - KEY=WAG4t3w4y!!
+      - WEBHOOK_BASE_URL=https://sapamas.test/webhook/whatsapp 
